@@ -1,9 +1,0 @@
-__pycache__/
-*.egg-info/
-build/
-.env
-.venv/
-lego_coach_data/
-offline_results.csv
-summary.csv
-*.png
