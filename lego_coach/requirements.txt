@@ -1,0 +1,9 @@
+# Same packages as the course lab3 repo, plus MediaPipe. Or just: pip install -e .
+openai
+opencv-python
+python-dotenv
+reachy-mini
+pyttsx3
+mediapipe
+# only for the --chart option of scripts/analyze.py
+matplotlib
