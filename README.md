@@ -22,33 +22,48 @@ RQ1: How accurately does the robot coach verify each building step, and which ki
 
 H2: The robot will verify steps more accurately when the VLM gets a reference image of the correct step than when it gets only a text description of that step
 
-## 2. Background
+### 1.3 HRI Literature Review and Research Gaps
 
-### 2.1 Theme 1
-### 2.2 Theme 2
-### 2.3 Research Gaps and Novelty
+#### Social Robots and Generative AI for Children’s Learning
 
-## 3. Robot Control Architecture
+Social robots have been widely studied as tutors and learning companions for children, and recent work has focused on how a robot’s behavior can support learning tasks. Ligthart et al. [1] designed a social robot math tutor and tested it in a three-session study with 130 children aged 8–11 (HRI 2023). Children improved at math over time when the robot scaffolded its instructions, and they saw the robot more as a friend when it personalized the conversation. More recently, researchers have begun adding LLMs to child-robot interaction. Rudenko et al. [2] studied the linguistic and interactive quality of language produced by an LLM-powered social robot for preschoolers and emphasized the need to validate LLM outputs before using them with children. Fernandes et al. [3] ran a co-design study with tutors and program coordinators for a classroom robot, noting that literacy programs are often limited by small staff, mixed-proficiency groups, and short contact time. This mirrors the supervision problem in hands-on STEM classrooms. Across this work, the robot mostly supports learning through conversation; the child’s learning activity happens in speech or on a screen rather than with physical objects.
 
-### 3.1 Robot Goals
-#### Robot Goals and System-Focused Problem
+#### Vision-Language Models for Task Verification and Error Detection
+
+A second line of work uses foundation models to check whether a physical task was done correctly. REFLECT [4] (CoRL 2023) queries an LLM to reason about failures using a hierarchical summary of the robot’s past experiences built from multisensory observations, and the resulting explanation guides a planner to correct the failure. AHA [5] treats failure detection as a free-form reasoning task, so a VLM both identifies failures and explains them in natural language across different robots and tasks, and its feedback improved sub-task verification and raised task success by an average of 21.4%. Guardian [6] notes that VLM accuracy and generalization for this problem are limited by the scarcity of failure data. Closest to our task, Kottom et al. [7] built an AR headset system for LEGO assembly in which each step is validated by a VLM so that user mistakes are detected and the user gets feedback on how to return to a valid state. Together, these papers show that VLMs can verify individual steps of a physical task, though their reliability on fine-grained spatial details remains an open problem.
+
+#### Research Gaps
+
+Our work addresses three gaps across these themes. First, most VLM-based failure detection, including REFLECT, AHA, and Guardian, checks the robot’s own manipulation errors. Our robot instead would check the human’s work, which introduces new challenges like hands blocking the view and builds that vary from student to student. Second, child-robot interaction research has largely focused on conversational tutoring [1, 2], and has rarely studied robots that give feedback on a child’s hands-on physical activity. Third, the closest system for step-by-step LEGO verification [7] delivers feedback through an AR headset rather than through an embodied social robot. Headsets are expensive and impractical for middle school classrooms, and they lose the social cues, like gaze and gestures, that make a robot feel like a learning partner. Our project combines these threads by evaluating the end-to-end performance of a low-cost desktop social robot that uses a VLM to verify each step of a student’s build and responds with speech and expressive gestures.
+
+#### References
+[1] M. Ligthart, S. de Droog, M. Bossema, L. Elloumi, K. Hoogland, M. Smakman, K. Hindriks, S. Ben Allouch. “Design specifications for a social robot math tutor.” HRI ‘23, pp. 321–330, 2023. doi:10.1145/3568162.3576957
+[2] Rudenko et al. LLM-powered social robot for preschoolers. HRI Companion ‘26, 2026. (Look up the full title and author list on Google Scholar.)
+[3] N. Fernandes et al. “Co-designing a Social Robot for Newcomer Children’s Cultural and Language Learning.” HRI 2026.
+[4] Z. Liu, A. Bahety, S. Song. “REFLECT: Summarizing Robot Experiences for Failure Explanation and Correction.” CoRL 2023, PMLR 229:3468–3484.
+[5] J. Duan et al. “AHA: A Vision-Language-Model for Detecting and Reasoning Over Failures in Robotic Manipulation.” ICLR 2025.
+[6] P. Pacaud, R. Garcia, S. Chen. “Guardian: Detecting Robotic Planning and Execution Errors with Vision-Language Models.” CoRL 2025 Workshop.
+[7] Kottom, Gharib, Humml, Stefan-Zavala. “Augmented Reality and Vision-Language Models to Guide Humans Across Manual Tasks.” SIGGRAPH 2025 Immersive Pavilion.
+
+## 2. Design Robot Control Architecture
+### 2.1 Robot Goals and System-Focused Problem
 #### Interaction Design Motivation
 #### Assessment Through Objective Measures
 
-### 3.2 Architecture Design
+### 2.2 Architecture Design
 #### Inputs
 #### Outputs
 #### Modules
 #### Architecture Type and Justification
 #### Architecture Figure
 
-## 4. Evaluation
+## 3. HRI Experiment Design
 
-### 4.1 Study Participants
+### 3.1 Study Participants
 #### Number of Participants
 #### Sampling Method
 
-### 4.2 Experimental Design
+### 3.2 Experimental Design
 #### Independent Variables
 #### Dependent Variables
 #### Study Design
@@ -56,37 +71,37 @@ H2: The robot will verify steps more accurately when the VLM gets a reference im
 #### How the Comparison Addresses the RQs / Hypotheses
 #### Evaluation Workflow Figure
 
-### 4.3 Study Task
+### 3.3 Study Task
 #### End-to-End HRI Task
 #### Level of Autonomy and Human Intervention
 
-### 4.4 Data Collection and Analysis
+### 3.4 Data Collection and Analysis
 #### Data Sources and Types
 #### Number of Observations
 #### Analysis Methods
 
-### 4.5 Metrics
+### 3.5 Metrics
 #### Objective Measures
 
-## 5. Results
+## 4. Results
 
-### 5.1 Outcomes by Dependent Variable
-### 5.2 Best and Worst Conditions
-### 5.3 Patterns Across Conditions
+### Outcomes by Dependent Variable
+### Best and Worst Conditions
+### Patterns Across Conditions
 
-## 6. Discussion
+## 5. Discussion
 
-### 6.1 Theme 1
-### 6.2 Theme 2
-### 6.3 Implications for RQs / Hypotheses
-### 6.4 Comparison with Prior Work
-### 6.5 Contributions and Implications
+### Key Findings 
+#### Theme 1
+#### Theme 2
+### Implications for RQs / Hypotheses
+### Comparison with Prior Work
+### Contributions and Implications
 
-## 7. Limitations and Future Work
+## 6. Limitations and Future Work
 
-### 7.1 Limitation 1
-### 7.2 Limitation 2
-### 7.3 Future Work
+### Limitations
+### Future Work
 
 ## 8. Code
 
