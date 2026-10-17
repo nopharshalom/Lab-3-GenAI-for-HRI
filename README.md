@@ -115,15 +115,35 @@ How the comparison answers the research questions. RQ1 is answered by the accura
 ### 3.3 Study Task
 
 #### End-to-End HRI Task
+The participant sits in front of Reachy Mini with the LEGO base plate between them. For each step, the robot reads the instruction aloud (for example, ["Put the red 2x4 brick in the center of the plate"]) and looks down at the build. In staged trials, the experimenter first builds the step correctly or with one deliberate mistake and clicks the matching ground-truth label in the control panel. The participant then gives a thumbs-up and moves their hands away. The robot waits until no hands are visible, takes a photo, and checks the step. For a correct step it nods, raises its antennas, and praises the student. For a mistake it tilts its head toward the build and speaks a hint (for example, ["The blue brick should be on the left"]). Human inputs are nonverbal (thumbs-up and hand position); robot outputs are verbal (instruction, praise, hint) and nonverbal (gaze, nod, head tilt, antennas).
+
 #### Level of Autonomy and Human Intervention
+Level of autonomy and human intervention. Each check is fully autonomous: gesture detection, waiting for hands to clear, photo capture, brick detection, VLM verification, and the robot's response need no operator input. The experimenter (i) stages the build and labels the ground truth, (ii) chooses the step with Prev/Next (auto-advance is off for staged trials), and (iii) can trigger a check with "Check now" if the thumbs-up is missed ([REPORT HOW OFTEN - see the "trigger" column]). The interaction is therefore semi-autonomous at the session level and fully autonomous at the check level. In the demo video, auto-advance is on and the robot coaches a full build without intervention.
 
 ### 3.4 Data Collection and Analysis
 #### Data Sources and Types
 #### Number of Observations
 #### Analysis Methods
+Participants. N = [3] participants were recruited by convenience sampling from the student team ([AGE RANGE, PRIOR LEGO EXPERIENCE]), acting as the student. Because the study measures the robot's verification performance rather than learning outcomes, team members are appropriate participants. Different hands, skin tones, sleeves, and gesture styles also test how robust the hand and gesture detection is.
+
+Build and staged trials. The build is the [tower] build (builds/tower.json) with [N] steps. For each step we stage one correct configuration and [one] configuration for each of the four mistake types, giving [5] configurations per step and [5 x N] staged trials per participant, or [X] live trials in total. Offline, each saved photo is re-checked under 3 conditions x 3 repeats, for [X x 9] offline checks.
+
+Data collection. All data are collected during inference; the VLM is not trained or fine-tuned. The two Teachable Machine models are trained beforehand on [#] brick close-ups and [#] whole-step photos. For each check we log (lego_coach_data/trials.csv): condition, model, ground truth, predicted correctness and error type, response latency, hand-clearing wait, VLM latency, the detector-only baseline result, trigger (thumbs-up or button), and whether the VLM answer was valid JSON. We also save the photo the VLM saw and an annotated copy showing the detected bricks. Session videos are recorded for the demo.
+
+Number of samples. [X] live checks and photos ([X] correct, [X] per mistake type), [X] offline checks, and [X] minutes of video.
+
+Analysis. scripts/analyze.py computes, for each condition: step-verification accuracy, mistake detection rate, false-alarm rate, detection rate per mistake type, error-type accuracy, and latencies. Rates are reported as mean +/- SD across the three offline repeats; latencies as mean +/- SD across live trials. Because the sample is small, we report descriptive statistics and the best and worst conditions rather than significance tests.
 
 ### 3.5 Metrics
 #### Objective Measures
+Treating "incorrect step" as the positive class:
+- Step-verification accuracy: share of checks where the robot's correct/incorrect call matches the ground truth.
+- Mistake detection rate (recall): share of staged mistakes the robot flagged as incorrect. A missed mistake means the student keeps building on an error.
+- False-alarm rate: share of correct steps the robot flagged as incorrect. A false alarm means wrongly correcting a student, which matters for trust in a tutor [5].
+- Per-type detection rate and error-type accuracy: the detection rate for each mistake type, and the share of detected mistakes whose type the robot named correctly (VLM conditions only). This determines whether the hint is useful.
+- Response latency: time from thumbs-up (or button) to the start of spoken feedback, reported together with its two parts, hand-clearing wait and VLM request time.
+- Parse rate: share of VLM answers that were valid JSON.
+Success and failure detection rates are the standard measures in VLM success-detection work [2], [3].
 
 ## 4. Results
 
