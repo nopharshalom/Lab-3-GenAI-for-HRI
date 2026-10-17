@@ -1,0 +1,5 @@
+openai
+opencv-python
+python-dotenv
+reachy-mini==1.11.0  # match the robot's daemon version
+pyttsx3

@@ -111,7 +111,74 @@ Our work addresses three gaps across these themes. First, most VLM-based failure
 
 ## 8. Code
 
+Built on the course's [Reachy Mini LLM/VLM/VLA demos](https://github.com/Cornell-Tech-HRI-Students-2026/lab3).
+
+| File | What it does |
+| --- | --- |
+| `lego_coach.py` | The app: piece check → build check → feedback, for every step; logs each check |
+| `verify.py` | The model checks (piece, and the three build-check conditions), shared by the app and the replay |
+| `replay.py` | Re-checks every photo from the live sessions with all three conditions |
+| `steps.py` | The build: the piece and instruction for each of the 8 steps |
+| `common.py` | Shared robot, camera, model and speech helpers (from the course demos) |
+| `analyze.py` | Accuracy, missed mistakes, false alarms and latency per condition, plus a paired test between conditions |
+| `reference_steps/` | A robot-camera photo of the correct build after each step, for the VLM |
+
 ### Setup
+
+Use Python 3.12.
+
+```bash
+python3.12 -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+1. Set `ROBOT_IP` at the top of `common.py`.
+2. Models: put `OPENAI_API_KEY=sk-...` in a `.env` file and add `--api` to the commands, or install [Ollama](https://ollama.com) and run `ollama pull gemma3:4b` (VLM) and `ollama pull llama3.2` (LLM).
+3. Point the camera at the build: tune `LOOK_DOWN_PITCH` in `common.py`.
+
 ### Running the Demos
+
+```bash
+python lego_coach.py --api                     # VLM + reference photo (default)
+python lego_coach.py --api --verify vlm_text   # VLM + written instructions
+python lego_coach.py --api --verify llm_judge  # VLM describes, LLM decides
+```
+
+| Module | Model | Sees the image? | Role |
+| --- | --- | --- | --- |
+| Piece identifier | VLM | yes | Names the piece the student holds up |
+| Build verifier (`vlm_image`, `vlm_text`) | VLM | yes | Compares the build with the reference photo or the instructions, decides, and writes the feedback |
+| Build describer (`llm_judge`) | VLM | yes | Only describes the pieces it sees and where they are |
+| Judge (`llm_judge`) | LLM | no | Compares that description with the instructions, decides, and writes the feedback |
+
+At each step the robot asks for the next piece: hold it up and press Enter. Then build the step and press Enter: the robot looks down, checks the build, and nods and wiggles its antennas, or tilts its head and says what to fix. At the prompt, `s` skips a check and `q` quits. Other options: `--start N` starts at step N, and `--no-piece-check` skips holding up pieces.
+
+### Running the Study
+
+Each participant builds the model **once**; afterwards every photo the robot took is checked again with all three conditions, so the conditions are compared on exactly the same images.
+
+1. **Live session** (once per participant, with the default `vlm_image` condition):
+
+   ```bash
+   python lego_coach.py --api --study P01
+   ```
+
+   The participant builds all 8 steps and makes a few **planned mistakes** (e.g. `wrong_color`, `missing`, `wrong_position`, `rotated`), checks them with the robot, then fixes them. After every check, the experimenter types whether it was really correct (`y`/`n`) and, if not, the mistake type. Every check goes to `trials.csv` (verdict, ground truth, what the VLM and LLM said, latency) with its camera photo in `captures/`.
+
+2. **Replay** (after all sessions): every build photo is checked with `vlm_image`, `vlm_text` and `llm_judge`:
+
+   ```bash
+   python replay.py --api
+   ```
+
+3. **Results:**
+
+   ```bash
+   python analyze.py              # the live, end-to-end robot (RQ1)
+   python analyze.py replay.csv   # the three conditions on the same photos (H2), with paired tests
+   ```
+
+   For each condition: accuracy, missed mistakes, false alarms and latency (mean ± SD), the missed mistakes by type, and an exact McNemar test for each pair of conditions (e.g. `vlm_image` vs `vlm_text` for H2).
 
 ## References
