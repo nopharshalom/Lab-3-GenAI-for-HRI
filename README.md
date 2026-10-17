@@ -110,6 +110,7 @@ The evaluation is within-subjects at the photo level. Live staged trials were ru
 How the comparison answers the research questions. RQ1 is answered by the accuracy, mistake detection, and per-type detection rates of the VLM conditions. H2 is answered by comparing reference_image with text on mistake detection (expected higher) and false-alarm rate (expected no higher). The tm_step baseline shows whether the general VLM outperforms a small model trained for this build.
  
 #### Evaluation Workflow Figure
+<img src="image1.jpg">
 
 ### 3.3 Study Task
 
