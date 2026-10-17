@@ -89,13 +89,30 @@ This design fits the task. Building is naturally divided into discrete steps, an
 
 ### 3.2 Experimental Design
 #### Independent Variables
+- text: the VLM receives the photo, the step instruction, and the brick summary.
+- reference_image: the same, plus a photo of the correctly completed step.
+- tm_step: the Teachable Machine step classifier only (no VLM), as a task-specific baseline.
+Ground truth (correct, missing brick, wrong color, wrong position, wrong orientation) is set by the experimenter and used to break down the results.
+
 #### Dependent Variables
+- DV1: Step-verification accuracy.
+- DV2: Mistake detection rate and false-alarm rate.
+- DV3: Detection rate per mistake type, and error-type accuracy.
+- DV4: Response latency, split into hand-clearing wait and VLM time.
+- DV5: JSON parse rate.
+  
 #### Study Design
 #### Number of Trials
+The evaluation is within-subjects at the photo level. Live staged trials were run with the robot, and every saved photo was then re-checked offline under all three conditions (evaluate_offline.py, 3 repeats each), so all conditions are compared on exactly the same images. This paired design removes differences in lighting, hand position, and camera angle between conditions, which would otherwise confound a comparison with so few trials. The repeats capture how much the VLM's answers vary from run to run. Live trials were [ROTATED / COUNTERBALANCED] across steps and participants so that live latency is measured for each condition.
+ 
 #### How the Comparison Addresses the RQs / Hypotheses
+
+How the comparison answers the research questions. RQ1 is answered by the accuracy, mistake detection, and per-type detection rates of the VLM conditions. H2 is answered by comparing reference_image with text on mistake detection (expected higher) and false-alarm rate (expected no higher). The tm_step baseline shows whether the general VLM outperforms a small model trained for this build.
+ 
 #### Evaluation Workflow Figure
 
 ### 3.3 Study Task
+
 #### End-to-End HRI Task
 #### Level of Autonomy and Human Intervention
 
