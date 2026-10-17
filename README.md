@@ -79,6 +79,7 @@ Our architecture is a deliberative, closed-loop architecture that takes turns wi
 This design fits the task. Building is naturally divided into discrete steps, and the robot only needs to judge the build at the end of each step, not continuously, so a slower but more capable deliberative model is the right choice. The extra seconds of VLM reasoning are acceptable because accuracy matters more than reaction speed here: a missed mistake or a false alarm is more harmful to a learner than a short wait. A purely reactive design (for example, fixed color thresholds that trigger a gesture) could not reason about position, orientation, or whether a build matches an instruction. An open-loop design would give one instruction per step and never verify it, which is exactly the problem of unnoticed mistakes we set out to solve. Turn-taking through a keypress keeps the robot from judging a build while the student’s hands are still moving. It is a simple stand-in for automatic “done” detection, which we leave to future work.
 
 #### Architecture Figure
+<img src="image.jpeg">
 
 ## 3. HRI Experiment Design
 
