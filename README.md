@@ -38,7 +38,13 @@ Our work addresses three gaps across these themes. First, most VLM-based failure
 
 ## 2. Design Robot Control Architecture
 ### 2.1 Robot Goals and System-Focused Problem
+
+The goal of our robot is to act as a desktop building coach. It guides a student through an 8-step LEGO build, checks the student’s work after every step, and gives immediate spoken and gestural feedback, so that mistakes are caught before the student moves on.
+
+The system-focused problem we study is visual verification of a human’s physical work by a VLM inside an embodied robot. The robot must judge details (color, size, position and orientation of small bricks) from its own head camera, in real conditions where the build is held in the student’s hands, partly hidden by fingers, and seen from changing angles, and it must do so quickly enough to keep the interaction flowing. We also examine how the VLM should be given the “correct answer”: as a reference image of the correct step, as written instructions, or with perception and reasoning split between a VLM and an LLM.
+
 #### Interaction Design Motivation
+
 #### Assessment Through Objective Measures
 
 ### 2.2 Architecture Design
@@ -51,8 +57,8 @@ Our work addresses three gaps across these themes. First, most VLM-based failure
 ## 3. HRI Experiment Design
 
 ### 3.1 Study Participants
-#### Number of Participants
-#### Sampling Method
+#### Number of Participants & Sampling Method
+4 participants that each completes the full 8-step build once, chosen via convenience sampling of team members and classmates.
 
 ### 3.2 Experimental Design
 #### Independent Variables
