@@ -1,219 +1,117 @@
----
-title: Lego Coach
-emoji: 🧱
-colorFrom: red
-colorTo: yellow
-sdk: static
-pinned: false
-short_description: Reachy Mini checks a student's LEGO build step by step
-tags:
- - reachy_mini
- - reachy_mini_python_app
----
+# Lab 3: GenAI for HRI
 
-# LEGO Coach for Reachy Mini
+## 1. Introduction
 
-A Reachy Mini app that coaches a middle school student through a step-by-step LEGO build.
-After each step, the student gives a thumbs-up. The robot waits for their hands to move
-out of the way, takes a photo, and checks the step with a vision-language model (VLM).
-It then nods and raises its antennas for a correct step, or tilts its head toward the build
-and gives a hint for a mistake.
+### 1.1 Problem Statement and Scope
+#### HRI Problem, Application, and LLM/VLM/VLA Scope
 
-Built on the course starter code ([Cornell-Tech-HRI-Students-2026/lab3](https://github.com/Cornell-Tech-HRI-Students-2026/lab3)):
-same Ollama / OpenAI model setup, same head and antenna helpers and safety limits, packaged
-as a Reachy Mini app with Google MediaPipe added for perception.
+Hands-on building activities, such as assembling LEGO models, are a core part of middle school STEM education. They help students develop spatial reasoning, follow multi-step instructions, and learn engineering concepts through direct experience. These activities depend on timely feedback, though: a mistake in an early step, like a misplaced brick, often goes unnoticed until several steps later, when it is harder to fix. In a typical classroom, a single teacher supervises many groups at once and cannot check each student’s progress at every step. We will address this problem by developing a desktop robot coach that watches a student build and checks each step as it is completed. Our system uses a Reachy Mini robot with a camera and a Vision-Language Model (VLM). After the student finishes a step, the VLM compares an image of the current build against the reference instructions for that step. The robot then responds with speech and expressive head and antenna gestures, either confirming the step or pointing out the mistake. Our scope focuses on the end-to-end behavior of the robot, rather than on the VLM in isolation: whether it correctly verifies each step, whether it catches mistakes before the student moves on, and how quickly it responds.
 
-INFO 5356 Lab 3: GenAI for HRI, Cornell Tech, Fall 2026.
+#### Motivation and Importance to the HRI Community
 
-## Architecture
+Addressing this problem matters for both students and the HRI community. Middle school students are often reluctant to ask for help in front of their peers, so errors that a teacher does not notice may simply persist. A robot that monitors progress and offers feedback without being asked could reduce frustration and keep students engaged. For the HRI community, this application raises open questions about grounding visual perception in physical, real-world tasks. Prior work on robots in education has largely focused on conversational tutoring, while VLMs have mostly been evaluated on static image benchmarks rather than in real-time interactions with physical objects [CITE]. A robot coach for building tasks must judge small spatial details, like a brick’s color, position, and orientation, under real classroom conditions with changing lighting, camera angles, and partially hidden pieces. It must also communicate its judgments in a way a student will trust and act on, since false alarms and missed mistakes can both undermine the student’s confidence in the robot. Studying how VLM perception performs as part of an embodied, end-to-end robot system helps show whether today’s VLMs are ready to support hands-on learning, and where they still fall short.
 
-```mermaid
-flowchart LR
-    CAM[Robot camera] --> HW["Hand Watcher<br/>MediaPipe Gesture Recognizer"]
-    HW -- "thumbs-up held 0.8 s" --> CTRL[Coach Controller<br/>state machine]
-    PANEL[Experimenter panel<br/>Check now, ground truth] --> CTRL
-    HW -- "hands out of view" --> SNAP[Capture photo]
-    CTRL --> SNAP
-    SNAP --> BD["Brick Detector<br/>color + Teachable Machine"]
-    SNAP --> TMS["Step model<br/>Teachable Machine (tm_step)"]
-    TMS -- "correct / not" --> BEH
-    SNAP --> VLM["Step Verifier<br/>VLM: Gemma 3 / OpenAI"]
-    BD -- brick summary --> VLM
-    BUILD[(Build steps<br/>+ reference photos)] --> VLM
-    VLM -- "correct / error type / hint" --> BEH[Behavior module]
-    BEH --> HEAD[Head + antennas]
-    BEH --> SPK[Speech]
-    VLM --> LOG[(trials.csv + photos)]
-```
+#### Video Demo
 
-The controller is a hybrid: a reactive layer (hand and gesture detection at 10 Hz) decides
-*when* to check, and a deliberative layer (the VLM) decides *what* the build state is.
+### 1.2 Research Questions / Hypotheses
+#### RQ1 / H1
 
-| Module | Input | Output | How |
-|---|---|---|---|
-| Hand Watcher | camera frames | number of hands, hand boxes, thumbs-up | MediaPipe Gesture Recognizer (`perception.py`) |
-| Coach Controller | thumbs-up, panel buttons | phase: instruct → watch → wait for hands to clear → check | state machine (`main.py`) |
-| Brick Detector | photo, hand boxes | list of named bricks with position | OpenCV color segmentation finds bricks, a Teachable Machine model names each one (`perception.py`, `tm.py`) |
-| Step model (baseline) | photo | correct or not for this step | Teachable Machine whole-image classifier, `tm_step` condition (`verifier.py`) |
-| Step Verifier | photo, step instruction, reference photo (condition), brick summary | correct, error type, hint | VLM with a JSON answer format (`verifier.py`) |
-| Behavior | verdict | head pose, antennas, speech | `behaviors.py` |
-| Trial Log | everything above | one CSV row + photo per check | `trial_log.py` |
+RQ1: How accurately does the robot coach verify each building step, and which kinds of student mistakes does it miss most often?
 
-## Setup
+#### RQ2 / H2
 
-Use Python 3.12, like the course repo.
+H2: The robot will verify steps more accurately when the VLM gets a reference image of the correct step than when it gets only a text description of that step
 
-```bash
-git clone <this repo> && cd lego_coach
-python3.12 -m venv .venv
-source .venv/bin/activate
-pip install -e .
-cp .env.example .env        # then set ROBOT_IP, and OPENAI_API_KEY if you use the API
-```
+### 1.3 HRI Literature Review and Research Gaps
 
-Free local model (default), same as the course demos:
+#### Social Robots and Generative AI for Children’s Learning
 
-```bash
-ollama pull gemma3:4b
-```
+Social robots have been widely studied as tutors and learning companions for children, and recent work has focused on how a robot’s behavior can support learning tasks. Ligthart et al. [1] designed a social robot math tutor and tested it in a three-session study with 130 children aged 8–11 (HRI 2023). Children improved at math over time when the robot scaffolded its instructions, and they saw the robot more as a friend when it personalized the conversation. More recently, researchers have begun adding LLMs to child-robot interaction. Rudenko et al. [2] studied the linguistic and interactive quality of language produced by an LLM-powered social robot for preschoolers and emphasized the need to validate LLM outputs before using them with children. Fernandes et al. [3] ran a co-design study with tutors and program coordinators for a classroom robot, noting that literacy programs are often limited by small staff, mixed-proficiency groups, and short contact time. This mirrors the supervision problem in hands-on STEM classrooms. Across this work, the robot mostly supports learning through conversation; the child’s learning activity happens in speech or on a screen rather than with physical objects.
 
-To use OpenAI instead, set `LEGO_COACH_API=1` in `.env`. The robot then also speaks with OpenAI's voice.
-On first run, the MediaPipe gesture model (about 8 MB) downloads to `~/.cache/lego_coach`.
+#### Vision-Language Models for Task Verification and Error Detection
 
-## Run
+A second line of work uses foundation models to check whether a physical task was done correctly. REFLECT [4] (CoRL 2023) queries an LLM to reason about failures using a hierarchical summary of the robot’s past experiences built from multisensory observations, and the resulting explanation guides a planner to correct the failure. AHA [5] treats failure detection as a free-form reasoning task, so a VLM both identifies failures and explains them in natural language across different robots and tasks, and its feedback improved sub-task verification and raised task success by an average of 21.4%. Guardian [6] notes that VLM accuracy and generalization for this problem are limited by the scarcity of failure data. Closest to our task, Kottom et al. [7] built an AR headset system for LEGO assembly in which each step is validated by a VLM so that user mistakes are detected and the user gets feedback on how to return to a valid state. Together, these papers show that VLMs can verify individual steps of a physical task, though their reliability on fine-grained spatial details remains an open problem.
 
-On your laptop, with the robot on the same network:
+#### Research Gaps
 
-```bash
-python -m lego_coach.main
-```
+Our work addresses three gaps across these themes. First, most VLM-based failure detection, including REFLECT, AHA, and Guardian, checks the robot’s own manipulation errors. Our robot instead would check the human’s work, which introduces new challenges like hands blocking the view and builds that vary from student to student. Second, child-robot interaction research has largely focused on conversational tutoring [1, 2], and has rarely studied robots that give feedback on a child’s hands-on physical activity. Third, the closest system for step-by-step LEGO verification [7] delivers feedback through an AR headset rather than through an embodied social robot. Headsets are expensive and impractical for middle school classrooms, and they lose the social cues, like gaze and gestures, that make a robot feel like a learning partner. Our project combines these threads by evaluating the end-to-end performance of a low-cost desktop social robot that uses a VLM to verify each step of a student’s build and responds with speech and expressive gestures.
 
-Then open the control panel at **http://localhost:8042**.
+#### References
+[1] M. Ligthart, S. de Droog, M. Bossema, L. Elloumi, K. Hoogland, M. Smakman, K. Hindriks, S. Ben Allouch. “Design specifications for a social robot math tutor.” HRI ‘23, pp. 321–330, 2023. doi:10.1145/3568162.3576957
 
-To run it as an app from the robot's dashboard instead, install it into the robot's
-environment (`pip install -e .` on the robot, or publish it with
-`reachy-mini-app-assistant publish`). The dashboard lists it as **Lego Coach** and links
-to the same control panel. Check the app first with `reachy-mini-app-assistant check .`
+[2] Rudenko et al. LLM-powered social robot for preschoolers. HRI Companion ‘26, 2026. (Look up the full title and author list on Google Scholar.)
 
-### Set up the scene
+[3] N. Fernandes et al. “Co-designing a Social Robot for Newcomer Children’s Cultural and Language Learning.” HRI 2026.
 
-1. Put the base plate in front of the robot. The robot looks down 22° (`LOOK_AT_BUILD_PITCH` in `config.py`); adjust until the whole plate is in the camera view in the panel.
-2. Check the brick colors under your lighting: `python scripts/check_colors.py --webcam`, or on a saved photo.
-3. For the `reference_image` condition, build each step correctly once and press **Save reference photo** on that step. Photos are saved to `lego_coach/builds/tower/stepN.jpg`.
+[4] Z. Liu, A. Bahety, S. Song. “REFLECT: Summarizing Robot Experiences for Failure Explanation and Correction.” CoRL 2023, PMLR 229:3468–3484.
 
-## Running the study
+[5] J. Duan et al. “AHA: A Vision-Language-Model for Detecting and Reasoning Over Failures in Robotic Manipulation.” ICLR 2025.
 
-The control panel has everything for a session:
+[6] P. Pacaud, R. Garcia, S. Chen. “Guardian: Detecting Robotic Planning and Execution Errors with Vision-Language Models.” CoRL 2025 Workshop.
 
-- **Participant**, **Build** and **Condition** (the independent variable: `text` or `reference_image` for H2, and the `tm_step` baseline).
-- **Move to the next step after a correct check**: leave on for the demo video. Turn it off for staged trials, so you choose the step with Prev / Next.
-- **Ground truth for the next check**: before each staged trial, click what you staged (`correct`, `missing brick`, `wrong color`, `wrong position`, `wrong orientation`). It resets after every check.
-- **Check now**: triggers a check without the thumbs-up.
+[7] Kottom, Gharib, Humml, Stefan-Zavala. “Augmented Reality and Vision-Language Models to Guide Humans Across Manual Tasks.” SIGGRAPH 2025 Immersive Pavilion.
 
-A staged trial goes like this:
+## 2. Design Robot Control Architecture
+### 2.1 Robot Goals and System-Focused Problem
+#### Interaction Design Motivation
+#### Assessment Through Objective Measures
 
-1. Choose the step, stage the build (correct or with one mistake), and click its ground-truth label.
-2. The participant gives a thumbs-up and moves their hands away.
-3. The robot checks and responds. The row appears under **Recent checks**.
+### 2.2 Architecture Design
+#### Inputs
+#### Outputs
+#### Modules
+#### Architecture Type and Justification
+#### Architecture Figure
 
-Everything is saved in `lego_coach_data/`:
+## 3. HRI Experiment Design
 
-- `trials.csv`: one row per check (columns below)
-- `images/<trial_id>.jpg`: the photo the VLM saw, and `_annotated.jpg` with detected bricks
+### 3.1 Study Participants
+#### Number of Participants
+#### Sampling Method
 
-| Column | Meaning |
-|---|---|
-| `condition`, `model` | IV level and VLM used |
-| `ground_truth` | what was staged |
-| `predicted_correct`, `predicted_error_type` | the robot's call |
-| `response_latency_s` | thumbs-up (or button) → robot starts speaking feedback |
-| `hands_clear_wait_s` | part of the response time spent waiting for hands to leave |
-| `vlm_latency_s` | time for the VLM request alone |
-| `detector_counts_match` | brick-detector-only baseline: do color counts match the step's expected bricks? |
-| `trigger` | `thumbs_up` or `button` |
-| `parse_ok` | did the VLM answer in valid JSON |
+### 3.2 Experimental Design
+#### Independent Variables
+#### Dependent Variables
+#### Study Design
+#### Number of Trials
+#### How the Comparison Addresses the RQs / Hypotheses
+#### Evaluation Workflow Figure
 
-### Same photos, both conditions (paired comparison)
+### 3.3 Study Task
+#### End-to-End HRI Task
+#### Level of Autonomy and Human Intervention
 
-The robot only runs one condition per check. To compare both conditions on exactly the
-same photos, re-run the saved photos offline (no robot needed):
+### 3.4 Data Collection and Analysis
+#### Data Sources and Types
+#### Number of Observations
+#### Analysis Methods
 
-```bash
-python scripts/evaluate_offline.py --trials lego_coach_data/trials.csv --repeats 3
-```
+### 3.5 Metrics
+#### Objective Measures
 
-Use `--labels your_photos/labels.csv` (columns `image, build, step, ground_truth`) for photos
-taken another way. Set `LEGO_COACH_API=1` or `VLM_MODEL=...` to compare models.
+## 4. Results
 
-### Results
+### Outcomes by Dependent Variable
+### Best and Worst Conditions
+### Patterns Across Conditions
 
-```bash
-python scripts/analyze.py lego_coach_data/trials.csv
-python scripts/analyze.py offline_results.csv --group-by repeat --chart results.png
-```
+## 5. Discussion
 
-This prints a Markdown table per condition: step-verification accuracy, mistake detection
-rate, false-alarm rate, detection rate for each mistake type (RQ1), error-type accuracy,
-latencies (mean ± SD), and the detector-only baseline. It also saves `summary.csv`.
+### Key Findings 
+#### Theme 1
+#### Theme 2
+### Implications for RQs / Hypotheses
+### Comparison with Prior Work
+### Contributions and Implications
 
-## Recognizing bricks: MediaPipe + Teachable Machine
+## 6. Limitations and Future Work
 
-MediaPipe handles the **hands and the thumbs-up**. MediaPipe's ready-made object detectors
-have no LEGO class, so bricks are recognized in two stages:
+### Limitations
+### Future Work
 
-1. **Find** bricks by color (OpenCV), ignoring areas covered by a hand.
-2. **Name** each brick with a Teachable Machine image model trained on close-ups
-   (`red_2x4`, `blue_2x2`, ..., plus `not_brick`, which removes table spots and hands).
+## 8. Code
 
-A second Teachable Machine model, trained on whole photos of each finished stage
-(`step0_empty`, `step1`, `step2`, ...), is the **`tm_step`** baseline condition: it checks a
-step without the VLM, so you can compare a small model trained for this build against the
-general VLM. It can tell correct from incorrect but not which kind of mistake.
+### Setup
+### Running the Demos
 
-Export both from Teachable Machine with **Tensorflow Lite → Floating point**, unzip them into
-`models/`, and point `.env` at the folders:
-
-```
-models/
-  brick_converted_tflite/   model_unquant.tflite, labels.txt
-  step_converted_tflite/    model_unquant.tflite, labels.txt
-```
-
-```bash
-TM_BRICK_MODEL=models/brick_converted_tflite
-TM_STEP_MODEL=models/step_converted_tflite
-```
-
-Name brick classes color first (`red_2x4`): the app takes the color from the part before the
-first `_`. Name step classes with the step number (`step1`, `step 2` and `step_3` all work;
-`step0_empty` is the empty plate). Predictions below `TM_MIN_SCORE` (default 0.6) count as unsure.
-
-The panel header shows the brick pipeline in use (`color + teachable machine`). Check it with
-`python scripts/check_colors.py --webcam`.
-
-Optional: a MediaPipe object detector trained with Model Maker on LEGO photos can replace both
-brick stages; set `LEGO_DETECTOR_MODEL=/path/to/model.tflite`.
-
-## Adding a build
-
-Copy `lego_coach/builds/tower.json`. Each step has an `instruction` (read out loud and given
-to the VLM) and `expected` brick counts by color (used for the detector baseline).
-
-## Files
-
-```
-lego_coach/
-  main.py          the app: control panel API and the coaching loop
-  perception.py    MediaPipe hand/gesture watcher, brick detector
-  tm.py            runs the Teachable Machine models
-  verifier.py      VLM prompt, conditions, answer parsing
-  behaviors.py     head, antenna and speech behaviors
-  trial_log.py     CSV logging
-  config.py        models, conditions, timings (env vars / .env)
-  builds/          build definitions and reference photos
-  static/          control panel (HTML/JS/CSS)
-scripts/
-  evaluate_offline.py   re-run saved photos under each condition
-  analyze.py            results tables and chart
-  check_colors.py       test the brick detector
-```
+## References
