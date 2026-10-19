@@ -12,6 +12,7 @@ Hands-on building activities, such as assembling LEGO models, are a core part of
 Addressing this problem matters for both students and the HRI community. Middle school students are often reluctant to ask for help in front of their peers, so errors that a teacher does not notice may simply persist. A robot that monitors progress and offers feedback without being asked could reduce frustration and keep students engaged. For the HRI community, this application raises open questions about grounding visual perception in physical, real-world tasks. Prior work on robots in education has largely focused on conversational tutoring, while VLMs have mostly been evaluated on static image benchmarks rather than in real-time interactions with physical objects [CITE]. A robot coach for building tasks must judge small spatial details, like a brick’s color, position, and orientation, under real classroom conditions with changing lighting, camera angles, and partially hidden pieces. It must also communicate its judgments in a way a student will trust and act on, since false alarms and missed mistakes can both undermine the student’s confidence in the robot. Studying how VLM perception performs as part of an embodied, end-to-end robot system helps show whether today’s VLMs are ready to support hands-on learning, and where they still fall short.
 
 #### Video Demo
+[![Reachy Mini Lego Helper Demo](images/LEGODEMO.jpg)](https://drive.google.com/file/d/1H7UWmWmpJo0X0d25sjPVVclfngb3A_Xr/view?usp=sharing)
 
 ### 1.2 Research Questions / Hypotheses
 #### RQ1 / H1
