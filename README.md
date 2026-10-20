@@ -148,23 +148,129 @@ Success and failure detection rates are the standard measures in VLM success-det
 
 ## 4. Results
 
+All results come from four participants (P01–P04), each completing one build. During the live sessions the robot used the `vlm_image` condition. Afterwards, all 50 build photos were re-checked under all three conditions (the replay). Ground truth was entered by the experimenter and corrected as documented in `clean_trials.py`. Of the 50 build checks, 40 showed a correct build and 10 showed a mistake. Accuracy, miss rate and false-alarm rate are proportions; latency is reported as mean ± SD.
+
 ### Outcomes by Dependent Variable
+
+**Live end-to-end robot** (`vlm_image`, `trials_clean.csv`):
+
+| Check | n | Accuracy | Missed mistakes | False alarms | Latency (s) |
+|---|---|---|---|---|---|
+| Build | 50 | 56.0% | 50.0% (5/10) | 42.5% (17/40) | 8.28 ± 5.84 |
+| Piece | 45 | 84.4% | 0.0% (0/7) | 18.4% (7/38) | 3.80 ± 1.46 |
+
+**Build checks, all conditions on the same 50 photos** (`replay.csv`):
+
+| Condition | Accuracy | Missed mistakes | False alarms | Latency (s) |
+|---|---|---|---|---|
+| `vlm_image` | 62.0% | 30.0% (3/10) | 40.0% (16/40) | 9.11 ± 5.94 |
+| `vlm_text` | 68.0% | 40.0% (4/10) | 30.0% (12/40) | 8.26 ± 4.87 |
+| `llm_judge` | 22.0% | 0.0% (0/10) | 97.5% (39/40) | 21.52 ± 8.19 |
+
+**Missed mistakes by type** (robot said "correct" on a wrong build):
+
+| Mistake type | Live `vlm_image` | Replay `vlm_image` | Replay `vlm_text` | Replay `llm_judge` |
+|---|---|---|---|---|
+| `missing` | 2/2 | 2/2 | 0/2 | 0/2 |
+| `rotated` | 2/2 | 1/2 | 1/2 | 0/2 |
+| `wrong_position` | 1/3 | 0/3 | 3/3 | 0/3 |
+| `wrong_color` | 0/1 | 0/1 | 0/1 | 0/1 |
+| `wrong_step` | 0/2 | 0/2 | 0/2 | 0/2 |
+
+**Paired comparisons** (exact McNemar test on the same photos):
+
+| Comparison | Only first right | Only second right | p |
+|---|---|---|---|
+| `vlm_image` vs `vlm_text` | 4 | 7 | 0.549 |
+| `llm_judge` vs `vlm_image` | 3 | 23 | < 0.001 |
+| `llm_judge` vs `vlm_text` | 4 | 27 | < 0.001 |
+
 ### Best and Worst Conditions
+
+- **Accuracy:** best `vlm_text` (68.0%), worst `llm_judge` (22.0%). `vlm_image` was in between (62.0% in the replay, 56.0% live).
+- **Missed mistakes:** best `llm_judge` (0/10), but only because it rejected almost every build. Among the usable conditions, `vlm_image` missed the fewest (3/10) and `vlm_text` missed 4/10.
+- **False alarms:** best `vlm_text` (30.0%), worst `llm_judge` (97.5%, rejecting 39 of 40 correct builds).
+- **Latency:** fastest `vlm_text` (8.26 ± 4.87 s), slowest `llm_judge` (21.52 ± 8.19 s, about 2.5× slower because it makes two model calls).
+- **Piece identification** was far more reliable than build verification: 84.4% vs 56.0% live, and 3.80 vs 8.28 s.
+
 ### Patterns Across Conditions
+
+- **The VLM conditions are close; the two-stage pipeline is not.** `vlm_image` and `vlm_text` disagreed on only 11 of 50 photos, and the difference was not significant (p = 0.549). `llm_judge` was significantly worse than both (p < 0.001).
+- **Obvious errors are caught; subtle spatial errors are not.** Every condition caught every `wrong_color` and `wrong_step` mistake (a wrong or extra piece). `missing` and `rotated` mistakes, which depend on small, partly hidden details, were missed most often.
+- **The reference image helps with position but not with missing pieces.** `vlm_image` caught all 3 `wrong_position` mistakes that `vlm_text` missed, but missed both `missing` mistakes that `vlm_text` caught.
+- **False alarms are a larger error than misses.** 30–42.5% of correct builds were rejected by the VLM conditions, compared with 10–50% of mistakes accepted. In absolute terms there were 12–17 false alarms and 3–5 misses per condition.
+- **The model is not fully consistent.** On the same 50 photos, `vlm_image` gave the same verdict live and in the replay for 43 (86%).
 
 ## 5. Discussion
 
-### Key Findings 
-#### Theme 1
-#### Theme 2
+### Key Findings
+
+1. The robot coach verified build steps with only moderate accuracy (56% live, 62–68% in the replay). It reliably identified individual pieces (84%).
+2. A reference image of the correct step did **not** improve verification over text-only instructions (H2 not supported).
+3. Splitting perception (VLM) from reasoning (LLM) made the robot far worse. Without seeing the image, the LLM rejected almost every build.
+4. Missed mistakes were concentrated in subtle spatial errors (missing and rotated pieces). Most errors overall were false alarms on correct builds.
+
+#### Theme 1: What the robot sees limits what it can judge
+
+The robot's camera views a hand-held build, often blurred, partly covered by fingers, and compressed by the video stream. The same VLM that named single pieces correctly 84% of the time judged whole builds correctly only 56–68% of the time. Its errors matched what is hardest to see:
+
+- A missing 2x4 hidden under or behind other pieces. In one live check the VLM described the absent brick as present.
+- The direction of a small black slope.
+
+The `llm_judge` reasons show the same issue from the other side: the VLM's descriptions repeatedly mentioned blur and unclear piece sizes. Better perception input, such as a fixed camera angle, a stable build on the table, or higher-resolution frames, is likely to matter more than how the decision is made.
+
+#### Theme 2: How the "correct answer" is given, and who decides
+
+Giving the VLM a picture of the correct step did not help overall, and changed *which* mistakes were caught. The reference image helped with positions but missed absent pieces, while text helped the VLM check for each listed piece. One likely reason is that the reference photos were also hand-held robot frames, so they carry the same blur and angle problems as the images being judged.
+
+Adding an LLM judge that cannot see shifted the system to the opposite extreme: it caught every mistake but rejected 97.5% of correct builds. This happened because the prompt told it to reject anything unclear, and the VLM's descriptions were almost always "unclear". The decision threshold therefore set the balance between misses and false alarms more than the model did, which is a design choice for a coach and not only a model property.
+
 ### Implications for RQs / Hypotheses
+
+- **RQ1** (how accurately does the robot verify each step, and which mistakes does it miss?): the end-to-end robot was correct on 56% of build checks, missed 5 of 10 planned mistakes, and rejected 42.5% of correct builds. It missed `missing` (2/2) and `rotated` (2/2) mistakes most often, and caught all `wrong_color` and `wrong_step` mistakes. For a classroom coach, both error types are costly: misses let errors carry into later steps, and false alarms make students redo correct work.
+- **H2** (a reference image gives more accurate verification than text): **not supported.** `vlm_image` was 62.0% accurate and `vlm_text` 68.0%, with no significant difference (p = 0.549). With 50 photos, a small benefit of either condition can't be ruled out, but there was no sign of the predicted advantage.
+
 ### Comparison with Prior Work
+
+- **AHA [5]** treats failure detection as free-form reasoning by a VLM, and **REFLECT [4]** uses an LLM to reason about failures from summarized observations. Our results suggest that when the system checks a *human's* work through a low-quality robot camera, perception is the bottleneck. A reasoning module that only sees a text summary (`llm_judge`, similar in spirit to REFLECT's design) performed worst, because uncertainty in the summary turned into rejections.
+- **Guardian [6]** notes that VLM failure detection is limited by the scarcity of failure data. We observed the related issue that rare, subtle failures (a hidden missing piece, a reversed slope) were the ones most often missed.
+- **Kottom et al. [7]** validated LEGO assembly steps with a VLM through an AR headset, whose camera follows the user's viewpoint. Our robot's fixed head camera, viewing a hand-held build, produced much noisier images. This suggests that moving step verification from a headset to a low-cost desktop robot costs accuracy unless the viewing setup is controlled.
+- In child–robot tutoring, **Ligthart et al. [1]** showed the value of scaffolded, step-by-step support. Our robot delivers that structure (step instructions, piece checks, retry until correct), but our false-alarm rate shows that verification needs to be more reliable before the scaffolding helps rather than frustrates.
+
 ### Contributions and Implications
+
+1. **An end-to-end evaluation of VLM step verification on an embodied social robot** checking a human's physical work, as opposed to robot self-checks or static benchmarks. The results show where today's VLMs fall short in this setting: accuracy is moderate, false alarms are frequent, and subtle spatial mistakes are missed.
+2. **Evidence that a reference image is not automatically better than text** for this task, and that each helps with different mistake types. This suggests combining them, for example image plus an explicit checklist of expected pieces.
+3. **A caution about splitting perception and reasoning:** an LLM judge that can't see amplified perception uncertainty into near-universal rejection.
+4. **A reusable study method:** run the live interaction once, then replay the same photos under every condition. This gives a fair, paired comparison of verification methods from a single build per participant.
+
+For robot design, the results suggest:
+
+- Control the view of the build (on the table, at a fixed angle) rather than having students hold it up.
+- Let the robot say it is *unsure* and ask for a better view, instead of forcing a correct/incorrect verdict.
+- Tune feedback to avoid false alarms, which were the most common error.
 
 ## 6. Limitations and Future Work
 
 ### Limitations
+
+- **Small sample.** There were four participants (team members, convenience sampling), 50 build checks and only 10 mistakes, with 1–3 per mistake type. Per-type results are counts, not reliable rates, and the H2 test has low power.
+- **Participants were adults, not middle school students.** They followed a script of planned mistakes, so real students' mistakes, hand positions and building styles may differ.
+- **Planned mistakes were not perfectly balanced.** The intended four types became five labels in practice (`wrong_step` was added), with uneven counts.
+- **Ground truth was entered live by the experimenter and needed corrections.** Seven entries were corrected afterwards (documented in `clean_trials.py`), including four where "robot was wrong" had been entered as "build was wrong".
+- **Image quality.** Builds were hand-held, often blurred, partly hidden by fingers and compressed by the video stream. The reference photos had the same issues, which may have weakened the `vlm_image` condition.
+- **One model and one set of prompts.** All conditions used `gpt-6.1-sol` with our prompt wording. The `llm_judge` result in particular depends on the instruction to reject unclear builds.
+- **Model variability.** The same condition on the same photos changed its verdict on 7 of 50 photos (86% agreement) between the live run and the replay, so single-run accuracies carry this extra noise.
+- **The live robot's feedback affected the session.** Only `vlm_image` drove the live interaction, so the replayed conditions judged the same photos but did not influence what participants did next.
+
 ### Future Work
+
+- **Improve perception input:** place the build on the table under a fixed head pose, use higher-resolution frames, take several frames per check, and use cleaner reference photos taken in the same setup.
+- **Combine image and text:** give the VLM the reference image *and* an explicit checklist of expected pieces per step, to catch both position and missing-piece errors.
+- **Allow an "unsure" verdict:** let the robot ask the student to show the build again when the model is uncertain, and measure how this trades misses against false alarms.
+- **Re-tune the LLM judge:** give it the image as well as the description, or change its threshold, to test whether separating reasoning can help once perception is reliable.
+- **A larger, balanced study:** more participants, ideally middle school students, with several examples of each mistake type and repeated runs to measure model variability.
+- **Measure the human side:** add subjective measures such as trust, frustration and perceived helpfulness, to understand how false alarms and misses affect students in practice.
 
 ## 8. Code
 
